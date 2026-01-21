@@ -6,20 +6,21 @@ use gpui::{App, AsyncApp, Task};
 use http_client::github::latest_github_release;
 pub use language::*;
 use language::{LanguageToolchainStore, LspAdapterDelegate, LspInstaller};
-use lsp::{LanguageServerBinary, LanguageServerName};
+use lsp::{LanguageServerBinary, LanguageServerName, Uri};
 
 use regex::Regex;
 use serde_json::json;
 use smol::fs;
 use std::{
     borrow::Cow,
+    collections::HashSet,
     ffi::{OsStr, OsString},
     ops::Range,
     path::{Path, PathBuf},
     process::Output,
     str,
     sync::{
-        Arc, LazyLock,
+        Arc, LazyLock, Mutex,
         atomic::{AtomicBool, Ordering::SeqCst},
     },
 };
@@ -30,8 +31,10 @@ fn server_binary_arguments() -> Vec<OsString> {
     vec!["-mode=stdio".into()]
 }
 
-#[derive(Copy, Clone)]
-pub struct GoLspAdapter;
+#[derive(Default)]
+pub struct GoLspAdapter {
+    gc_details_enabled_packages: Mutex<HashSet<String>>,
+}
 
 impl GoLspAdapter {
     const SERVER_NAME: LanguageServerName = LanguageServerName::new_static("gopls");
@@ -204,6 +207,16 @@ impl LspAdapter for GoLspAdapter {
                 "functionTypeParameters": true,
                 "parameterNames": true,
                 "rangeVariableTypes": true
+            },
+            "ui": {
+                "diagnostic": {
+                    "annotations": {
+                        "bounds": true,
+                        "escape": true,
+                        "inline": true,
+                        "nil": true
+                    }
+                }
             }
         })))
     }
@@ -395,6 +408,48 @@ impl LspAdapter for GoLspAdapter {
         static REGEX: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"(?m)\n\s*").expect("Failed to create REGEX"));
         Some(REGEX.replace_all(message, "\n\n").to_string())
+    }
+
+    fn post_buffer_registered(
+        self: Arc<Self>,
+        buffer_uri: &Uri,
+        language_server: &Arc<lsp::LanguageServer>,
+    ) -> Option<std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'static>>>
+    {
+        let package_path = buffer_uri
+            .path()
+            .rsplit_once('/')
+            .map(|(dir, _)| dir.to_string())
+            .unwrap_or_default();
+
+        {
+            let enabled = self.gc_details_enabled_packages.lock().unwrap();
+            if enabled.contains(&package_path) {
+                return None;
+            }
+        }
+
+        let uri = buffer_uri.clone();
+        let server = language_server.clone();
+
+        Some(Box::pin(async move {
+            server
+                .request::<lsp::request::ExecuteCommand>(lsp::ExecuteCommandParams {
+                    command: "gopls.gc_details".to_string(),
+                    arguments: vec![json!({ "URI": uri.to_string() })],
+                    ..Default::default()
+                })
+                .await
+                .into_response()
+                .log_err();
+
+            {
+                let mut enabled = self.gc_details_enabled_packages.lock().unwrap();
+                enabled.insert(package_path);
+            }
+
+            Ok(())
+        }))
     }
 }
 

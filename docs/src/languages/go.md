@@ -37,6 +37,42 @@ gopls version
 
 If `gopls` is not found you will likely need to add `export PATH="$PATH:$HOME/go/bin"` to your `.zshrc` / `.bash_profile`
 
+## Compiler Optimization Details
+
+Zed automatically shows Go compiler optimization details as diagnostics when you open a Go file:
+
+- **Escape analysis**: Shows which variables escape to the heap
+- **Inlining decisions**: Shows which functions are/aren't inlined and why
+- **Bounds checking**: Shows where bounds checks are inserted
+- **Nil checks**: Shows where nil checks occur
+
+These diagnostics are automatically enabled per-package when you open a Go file. No manual toggle is required.
+
+### Disabling Specific Annotation Types
+
+To disable certain annotation types, configure gopls settings in your Zed settings:
+
+```json [settings]
+{
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "ui": {
+          "diagnostic": {
+            "annotations": {
+              "bounds": false,
+              "escape": true,
+              "inline": true,
+              "nil": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ## Inlay Hints
 
 Zed sets the following initialization options for inlay hints:

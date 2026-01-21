@@ -88,7 +88,7 @@ pub fn init(languages: Arc<LanguageRegistry>, fs: Arc<dyn Fs>, node: NodeRuntime
     let css_lsp_adapter = Arc::new(css::CssLspAdapter::new(node.clone()));
     let eslint_adapter = Arc::new(eslint::EsLintLspAdapter::new(node.clone()));
     let go_context_provider = Arc::new(go::GoContextProvider);
-    let go_lsp_adapter = Arc::new(go::GoLspAdapter);
+    let go_lsp_adapter = Arc::new(go::GoLspAdapter::default());
     let json_context_provider = Arc::new(JsonTaskProvider);
     let json_lsp_adapter = Arc::new(json::JsonLspAdapter::new(languages.clone(), node.clone()));
     let node_version_lsp_adapter = Arc::new(json::NodeVersionAdapter);

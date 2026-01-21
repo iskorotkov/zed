@@ -56,6 +56,7 @@ use std::{
     mem,
     ops::{DerefMut, Range},
     path::{Path, PathBuf},
+    pin::Pin,
     str,
     sync::{
         Arc, LazyLock,
@@ -556,6 +557,17 @@ pub trait LspAdapter: 'static + Send + Sync + DynLspInstaller {
     /// This allows adapters to intercept preference selections (like "Always" or "Never")
     /// for settings that should be persisted to Zed's settings file.
     fn process_prompt_response(&self, _context: &PromptResponseContext, _cx: &mut AsyncApp) {}
+
+    /// Called after a buffer is registered with the language server (didOpen sent).
+    /// Allows adapters to execute language-server-specific commands after file open.
+    /// Returns a future that will be spawned on a background executor.
+    fn post_buffer_registered(
+        self: Arc<Self>,
+        _buffer_uri: &Uri,
+        _language_server: &Arc<lsp::LanguageServer>,
+    ) -> Option<Pin<Box<dyn Future<Output = Result<()>> + Send + 'static>>> {
+        None
+    }
 }
 
 pub trait LspInstaller {

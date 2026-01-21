@@ -2720,6 +2720,14 @@ impl LocalLspStore {
                 .or_default()
                 .insert(server.server_id());
             if registered {
+                if let Some(future) =
+                    adapter.adapter.clone().post_buffer_registered(&uri, &server)
+                {
+                    cx.background_executor()
+                        .spawn(future)
+                        .detach_and_log_err(cx);
+                }
+
                 cx.emit(LspStoreEvent::LanguageServerUpdate {
                     language_server_id: server.server_id(),
                     name: None,
