@@ -10,6 +10,7 @@
 //!
 //! Most of the interesting work happens at the local layer, as bulk of the complexity is with managing the lifecycle of language servers. The actual implementation of the LSP protocol is handled by [`lsp`] crate.
 pub mod clangd_ext;
+pub mod gopls_ext;
 pub mod json_language_server_ext;
 pub mod log_store;
 pub mod lsp_ext_command;
@@ -1221,7 +1222,8 @@ impl LocalLspStore {
         vue_language_server_ext::register_requests(lsp_store.clone(), language_server);
         json_language_server_ext::register_requests(lsp_store.clone(), language_server);
         rust_analyzer_ext::register_notifications(lsp_store.clone(), language_server);
-        clangd_ext::register_notifications(lsp_store, language_server, adapter);
+        clangd_ext::register_notifications(lsp_store.clone(), language_server, adapter);
+        gopls_ext::register_notifications(lsp_store, language_server);
     }
 
     fn shutdown_language_servers_on_quit(
@@ -2730,6 +2732,7 @@ impl LocalLspStore {
                         },
                     ),
                 });
+                gopls_ext::enable_gc_details_for_buffer(&server, &uri, &abs_path, cx);
             }
         }
     }

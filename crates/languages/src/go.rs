@@ -204,6 +204,15 @@ impl LspAdapter for GoLspAdapter {
                 "functionTypeParameters": true,
                 "parameterNames": true,
                 "rangeVariableTypes": true
+            },
+            "codelenses": {
+                "gc_details": true
+            },
+            "annotations": {
+                "bounds": true,
+                "escape": true,
+                "inline": true,
+                "nil": true
             }
         })))
     }
