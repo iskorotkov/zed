@@ -894,6 +894,10 @@
       // Default: inherits editor scrollbar settings
       // "show": null
     },
+    // Minimum number of lines to display in the commit message editor.
+    //
+    // Default: 4
+    "commit_message_editor_min_lines": 4,
   },
   "message_editor": {
     // Whether to automatically replace emoji shortcodes with emoji characters.

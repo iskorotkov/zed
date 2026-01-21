@@ -542,6 +542,11 @@ pub struct GitPanelSettingsContent {
     ///
     /// Default: false
     pub tree_view: Option<bool>,
+
+    /// Minimum number of lines of height the commit message editor should have.
+    ///
+    /// Default: 4
+    pub commit_message_editor_min_lines: Option<usize>,
 }
 
 #[derive(

@@ -624,7 +624,7 @@ struct BulkStaging {
     anchor: RepoPath,
 }
 
-const MAX_PANEL_EDITOR_LINES: usize = 6;
+const MODAL_EDITOR_LINES: usize = 18;
 
 pub(crate) fn commit_message_editor(
     commit_message_buffer: Entity<Buffer>,
@@ -635,11 +635,19 @@ pub(crate) fn commit_message_editor(
     cx: &mut Context<Editor>,
 ) -> Editor {
     let buffer = cx.new(|cx| MultiBuffer::singleton(commit_message_buffer, cx));
-    let max_lines = if in_panel { MAX_PANEL_EDITOR_LINES } else { 18 };
+    let (min_lines, max_lines) = if in_panel {
+        let settings = GitPanelSettings::get_global(cx);
+        (
+            settings.commit_message_editor_min_lines,
+            Some(settings.commit_message_editor_max_lines()),
+        )
+    } else {
+        (MODAL_EDITOR_LINES, Some(MODAL_EDITOR_LINES))
+    };
     let mut commit_editor = Editor::new(
         EditorMode::AutoHeight {
-            min_lines: max_lines,
-            max_lines: Some(max_lines),
+            min_lines,
+            max_lines,
         },
         buffer,
         None,
@@ -4207,10 +4215,12 @@ impl GitPanel {
 
         let footer_size = px(32.);
         let gap = px(9.0);
+        let settings = GitPanelSettings::get_global(cx);
+        let max_editor_lines = settings.commit_message_editor_max_lines();
         let max_height = panel_editor_style
             .text
             .line_height_in_pixels(window.rem_size())
-            * MAX_PANEL_EDITOR_LINES
+            * max_editor_lines
             + gap;
 
         let git_panel = cx.entity();
@@ -4221,7 +4231,7 @@ impl GitPanel {
                 .trim_end_matches("/"),
         ));
         let editor_is_long = self.commit_editor.update(cx, |editor, cx| {
-            editor.max_point(cx).row().0 >= MAX_PANEL_EDITOR_LINES as u32
+            editor.max_point(cx).row().0 >= max_editor_lines as u32
         });
 
         let footer = v_flex()
